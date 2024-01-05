@@ -39,11 +39,6 @@ docker_stream_parser log1.vdm log2.vdm log3.vdm
 # Can be usefull for validation of docker stream dumps 
 docker_stream_parser -f log1.vdm -o /dev/null
 
-# on Linux, getting stderr and stdout from the pipe and redirecting them into 
-# separate files notice we're silencing errors, so we don't contaminate stderr 
-# with potential parsing errors if pipe was malformed
-cat log.vdm | docker_stream_parser --silent 2> log.stderr.txt > log.stdout.txt
-
 ```
 
 ## License

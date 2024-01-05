@@ -12,18 +12,18 @@ impl DockerDecoderChunkWriter {
     pub fn new(args: &Args) -> Result<Self> {
         let stdout_file: Box<dyn Write> = match args.stdout.as_str() {
             "-" => Box::new(std::io::stdout()),
-            _ => Box::new(File::open(&args.stdout)?),
+            _ => Box::new(File::create(&args.stdout)?),
         };
         let stdout_writer = BufWriter::new(stdout_file);
 
         let stdin_writer = match &args.stdin {
             None => None,
-            Some(filename) => Some(BufWriter::new(File::open(filename)?)),
+            Some(filename) => Some(BufWriter::new(File::create(filename)?)),
         };
         let stderr_file: Option<Box<dyn Write>> = match args.stderr.as_deref() {
             None => None,
             Some("-") => Some(Box::new(std::io::stderr())),
-            Some(filename) => Some(Box::new(File::open(filename)?)),
+            Some(filename) => Some(Box::new(File::create(filename)?)),
         };
         let stderr_writer = stderr_file.and_then(|file| Some(BufWriter::new(file)));
 
