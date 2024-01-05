@@ -21,7 +21,7 @@ pub struct Args {
     #[arg(short = 'e', long)]
     pub stderr: Option<String>,
 
-    /// Not try to recover on parsing errors and fail immediately
+    /// Not try to recover from parsing errors and fail immediately
     #[arg(short = 'f', long, default_value_t = false)]
     pub fatal: bool,
 

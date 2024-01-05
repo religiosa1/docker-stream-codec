@@ -11,6 +11,8 @@ use std::{
 };
 
 use args::Args;
+use docker_decoder_error::DockerDecoderError;
+use frame_header::StreamType;
 
 const BUFFER_SIZE: usize = 8192;
 
@@ -22,10 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut decoder = docker_stream_decoder::DockerStreamDecoder::new();
         let file: Box<dyn Read> = match filename.as_str() {
             "-" => Box::new(std::io::stdin()),
-            _ => {
-                let file = File::open(filename)?;
-                Box::new(file)
-            }
+            _ => Box::new(File::open(filename)?),
         };
         let mut reader = BufReader::new(file);
 
@@ -34,17 +33,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         let bytes_read = match reader.read(&mut buffer) {
             Ok(n) => n,
             Err(err) => {
-                // TODO Should we just throw here, as it's not a decoding error but an actual IO error?
                 if !args.silent {
                     eprintln!("Error reading from file {}: {}", filename, err);
                 }
-                continue;
+                return Err(Box::new(err));
             }
         };
 
         for chunk_result in decoder.decode(&buffer[0..bytes_read]) {
             match chunk_result {
                 Ok(chunk) => {
+                    if let Err(_) = StreamType::try_from(chunk.stream_type) {
+                        if !args.silent {
+                            eprintln!("Incorrect docker stream type {}", chunk.stream_type);
+                        }
+                        if args.fatal {
+                            return Err(Box::new(DockerDecoderError::IncorrectFrameType(
+                                chunk.stream_type,
+                            )));
+                        }
+                    }
                     chunk_writer.write(chunk)?;
                 }
                 Err(err) => {

@@ -1,4 +1,4 @@
-use crate::{args::Args, docker_stream_decoder::DockerDecoderChunk};
+use crate::{args::Args, docker_stream_decoder::DockerDecoderChunk, frame_header::StreamType};
 
 use std::{fs::File, io::BufWriter, io::Result, io::Write};
 
@@ -6,7 +6,6 @@ pub struct DockerDecoderChunkWriter {
     stdin: Option<BufWriter<File>>,
     stdout: BufWriter<Box<dyn Write>>,
     stderr: Option<BufWriter<Box<dyn Write>>>,
-    silent: bool,
 }
 
 impl DockerDecoderChunkWriter {
@@ -32,33 +31,27 @@ impl DockerDecoderChunkWriter {
             stdin: stdin_writer,
             stdout: stdout_writer,
             stderr: stderr_writer,
-            silent: args.silent,
         })
     }
 
     pub fn write(&mut self, chunk: DockerDecoderChunk) -> Result<()> {
-        match chunk.stream_type {
-            // FIXME use StreamType instead
-            0u8 => {
-                if let Some(stdin) = &mut self.stdin {
-                    stdin.write(chunk.body)?;
+        if let Ok(stream_type) = StreamType::try_from(chunk.stream_type) {
+            match stream_type {
+                StreamType::Stdin => {
+                    if let Some(stdin) = &mut self.stdin {
+                        stdin.write(chunk.body)?;
+                    }
+                }
+                StreamType::Stdout => {
+                    self.stdout.write(chunk.body)?;
+                }
+                StreamType::Stderr => {
+                    if let Some(stderr) = &mut self.stderr {
+                        stderr.write(chunk.body)?;
+                    }
                 }
             }
-            1u8 => {
-                self.stdout.write(chunk.body)?;
-            }
-            2u8 => {
-                if let Some(stderr) = &mut self.stderr {
-                    stderr.write(chunk.body)?;
-                }
-            }
-            _ => {
-                // TODO check args.fatal and maybe throw here too
-                if !self.silent {
-                    eprintln!("Unexpected stream type {}", chunk.stream_type);
-                }
-            }
-        };
+        }
         Ok(())
     }
 }

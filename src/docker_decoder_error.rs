@@ -1,15 +1,25 @@
 use std::error::Error;
 use std::fmt;
 
+use crate::frame_header::FRAME_HEADER_LENGTH;
+
 #[derive(Debug)]
 pub enum DockerDecoderError {
-    MalformedHeader,
+    IncorrectFrameType(u8),
+    MalformedHeader([u8; FRAME_HEADER_LENGTH]),
 }
 impl fmt::Display for DockerDecoderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DockerDecoderError::MalformedHeader => {
-                write!(f, "Value too large for defined data type")
+            Self::MalformedHeader(header) => {
+                write!(
+                    f,
+                    "Malformed docker frame header, header contents dump: {:x?}",
+                    header
+                )
+            }
+            Self::IncorrectFrameType(t) => {
+                write!(f, "Incorrect DockerFrame type: {}", t)
             }
         }
     }
@@ -17,14 +27,6 @@ impl fmt::Display for DockerDecoderError {
 
 impl Error for DockerDecoderError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            DockerDecoderError::MalformedHeader => Some(self),
-        }
+        None
     }
 }
-
-// impl From<std::io::Error> for DockerDecoderError {
-//     fn from(err: std::io::Error) -> Self {
-//         DockerDecoderError::Io(err)
-//     }
-// }
