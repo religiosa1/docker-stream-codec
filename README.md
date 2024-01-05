@@ -1,7 +1,25 @@
 # Docker Stream Parser
 
-Small CLI-utility for parsing [multiplexed Docker Streams](https://docs.docker.com/engine/api/v1.43/#tag/Container/operation/ContainerAttach),
+Small CLI-utility for parsing 
+[multiplexed Docker Streams](https://docs.docker.com/engine/api/v1.43/#tag/Container/operation/ContainerAttach),
 i.e. downloaded container logs.
+
+## Building
+
+Docker Stream Parser is written in Rust, you'll need a 
+[Rust installation](https://www.rust-lang.org/tools/install) to compile it. 
+
+```sh
+git clone https://github.com/religiosa1/docker_stream_parser.git
+cd docker_stream_parser
+cargo build --release
+```
+
+## Running tests
+
+```sh
+cargo test --all
+```
 
 ## Examples
 

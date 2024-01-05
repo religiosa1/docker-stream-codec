@@ -62,7 +62,7 @@ impl<'a> Iterator for DockerStreamDecoderChunks<'a> {
                 self.decoder.n_bytes_read += bytes_to_copy as u32;
                 if self.decoder.n_bytes_read >= FRAME_HEADER_LENGTH as u32 {
                     self.decoder.n_bytes_read = 0;
-                    let header = FrameHeader::parse(&mut self.decoder.header_buffer);
+                    let header = FrameHeader::parse(&self.decoder.header_buffer);
                     match header {
                         Ok(h) => {
                             if h.length > 0 {
