@@ -1,0 +1,17 @@
+[package]
+name = "docker_stream_parser"
+version = "0.1.0"
+edition = "2021"
+authors = ["Viacheslav Azarov"]
+license = "MIT"
+description = """
+Parses multiplexed docker streams, picking one of IO streams from it, or 
+writing all of them into separate files.
+
+See https://docs.docker.com/engine/api/v1.43/#tag/Container/operation/ContainerAttach
+"""
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+byteorder = "1.5.0"
+clap = { version = "4.1.8", features = ["derive"] }
