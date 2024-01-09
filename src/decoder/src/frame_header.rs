@@ -1,4 +1,4 @@
-use crate::docker_decoder_error::DockerDecoderError;
+use crate::errors::DockerDecoderError;
 use byteorder::{BigEndian, ByteOrder};
 
 pub const FRAME_HEADER_LENGTH: usize = 8;

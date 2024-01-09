@@ -36,6 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut multiplexer =
         DockerStreamMultiplexer::new(sources, args.frame_max, args.frame_min as u32);
+
     io::copy(&mut multiplexer, &mut output)?;
     Ok(())
 }

@@ -27,11 +27,11 @@ pub struct Args {
     pub stderr: Option<String>,
 
     /// Frame size max
-    #[arg(short = 'm', long, default_value_t = 200)]
+    #[arg(short = 'M', long, default_value_t = 200)]
     pub frame_max: u32,
 
     /// Frame size min. Can be specified as negative value (offset from frame_max) or 0 -- equals to frame_size_max
-    #[arg(short = 'm', long, default_value_t = 0)]
+    #[arg(short = 'm', long, default_value_t = 100)]
     pub frame_min: i32,
 }
 

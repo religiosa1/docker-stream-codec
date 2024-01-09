@@ -1,7 +1,7 @@
 mod args;
-mod docker_decoder_chunk_writer;
-mod docker_decoder_error;
+mod chunk_writer;
 mod docker_stream_decoder;
+mod errors;
 mod frame_header;
 
 use std::error::Error;
@@ -11,7 +11,7 @@ use std::{
 };
 
 use args::Args;
-use docker_decoder_error::DockerDecoderError;
+use errors::DockerDecoderError;
 use frame_header::StreamType;
 
 const BUFFER_SIZE: usize = 8192;
@@ -19,7 +19,7 @@ const BUFFER_SIZE: usize = 8192;
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let mut buffer = [0u8; BUFFER_SIZE];
-    let mut chunk_writer = docker_decoder_chunk_writer::DockerDecoderChunkWriter::new(&args)?;
+    let mut chunk_writer = chunk_writer::DockerDecoderChunkWriter::new(&args)?;
 
     for filename in &args.files {
         let mut decoder = docker_stream_decoder::DockerStreamDecoder::new();

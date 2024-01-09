@@ -30,6 +30,10 @@ cargo test --all
 ## Examples
 
 ### Decoder 
+
+Parses multiplexed docker stream into each separate IO stream and writes them to
+separate files.
+
 ```sh
 # assuming you have downloaded logs into ./log.vdm
 
@@ -47,6 +51,25 @@ docker-stream-decoder log1.vdm log2.vdm log3.vdm
 docker-stream-decoder -f log1.vdm -o /dev/null
 ```
 
+### Ecnoder
+
+Generates a multiplexed docker stream from multiple input files, with either
+fixed-size frames or randomly sized within the specified range. 
+
+Input file for each next chunk is selected at random.
+
+```sh
+# Reading contents of log files, multiplexing it into a single stream and redirecting to log.vdm
+docker-stream-decoder -i log.stdin.txt -o log.stdout.txt -r log.stderr.txt > log.vdm 
+
+# Reading a single log file, splitting into chunks of fixed size of 250 bytes and writing to log.vdm
+docker-stream-decoder -o log.stdout.txt -M250  -O log.vdm 
+
+# Reading a single log files, splitting into chunks of random size from 200 to 250 (inclusive) bytes
+docker-stream-decoder -i log.stdin.txt -m 200 -M250
+
+```
+
 ## License
 
-The parsing utility is MIT licensed.
+The Docker Stream CLI encoder/decoder is MIT licensed.

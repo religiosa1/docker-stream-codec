@@ -1,6 +1,6 @@
 use crate::frame_header::{FrameHeader, FRAME_HEADER_LENGTH};
 
-use super::docker_decoder_error::DockerDecoderError;
+use super::errors::DockerDecoderError;
 
 enum ParsingMode {
     Header,
