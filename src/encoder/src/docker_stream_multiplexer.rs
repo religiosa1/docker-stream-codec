@@ -15,15 +15,15 @@ struct RemainderInfo {
 }
 
 #[derive(Clone, Copy)]
-enum WritingMode {
-    New,
-    Header(RemainderInfo),
-    Body(RemainderInfo),
+enum OperationMode {
+    Read,
+    CopyHeader(RemainderInfo),
+    CopyBody(RemainderInfo),
 }
 
 pub struct DockerStreamMultiplexer<'a> {
-    writing_mode: WritingMode,
-    buffer: Vec<u8>,
+    operation_mode: OperationMode,
+    body_buffer: Vec<u8>,
     header_buffer: [u8; FRAME_HEADER_LENGTH],
 
     frame_min: u32,
@@ -34,9 +34,9 @@ pub struct DockerStreamMultiplexer<'a> {
 
 impl<'a> DockerStreamMultiplexer<'a> {
     pub fn new(sources: Vec<StreamSourceInfo<'a>>, frame_max: u32, frame_min: u32) -> Self {
-        DockerStreamMultiplexer {
-            writing_mode: WritingMode::New,
-            buffer: Vec::with_capacity(frame_max as usize),
+        Self {
+            operation_mode: OperationMode::Read,
+            body_buffer: Vec::with_capacity(frame_max as usize),
             header_buffer: [0u8; FRAME_HEADER_LENGTH],
             frame_max: frame_max,
             frame_min: frame_min,
@@ -68,7 +68,7 @@ impl<'a> DockerStreamMultiplexer<'a> {
             let source_info = &mut self.sources[source_index];
             let n_bytes_read = source_info
                 .source
-                .read(&mut self.buffer[0..bytes_to_read])?;
+                .read(&mut self.body_buffer[0..bytes_to_read])?;
 
             if n_bytes_read == 0 {
                 self.sources.remove(source_index);
@@ -91,12 +91,12 @@ impl<'a> DockerStreamMultiplexer<'a> {
             "shouldn't write more, than we have space"
         );
         if bytes_to_write == remainder {
-            self.writing_mode = WritingMode::Body(RemainderInfo {
+            self.operation_mode = OperationMode::CopyBody(RemainderInfo {
                 bytes_written: 0,
                 body_length: header_info.body_length,
             });
         } else {
-            self.writing_mode = WritingMode::Header(RemainderInfo {
+            self.operation_mode = OperationMode::CopyHeader(RemainderInfo {
                 bytes_written: header_info.bytes_written + bytes_to_write,
                 body_length: header_info.body_length,
             });
@@ -107,12 +107,12 @@ impl<'a> DockerStreamMultiplexer<'a> {
     fn copy_body(&mut self, buf: &mut [u8], header_info: &RemainderInfo) -> usize {
         let remainder = header_info.body_length - header_info.bytes_written;
         let bytes_to_write = std::cmp::min(remainder, buf.len());
-        buf[0..bytes_to_write].copy_from_slice(&self.buffer[0..bytes_to_write]);
+        buf[0..bytes_to_write].copy_from_slice(&self.body_buffer[0..bytes_to_write]);
 
         if bytes_to_write == remainder {
-            self.writing_mode = WritingMode::New;
+            self.operation_mode = OperationMode::Read;
         } else {
-            self.writing_mode = WritingMode::Body(RemainderInfo {
+            self.operation_mode = OperationMode::CopyBody(RemainderInfo {
                 bytes_written: header_info.bytes_written + bytes_to_write,
                 body_length: header_info.body_length,
             });
@@ -125,12 +125,12 @@ impl<'a> Read for DockerStreamMultiplexer<'a> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let mut bytes_written_total: usize = 0;
         while bytes_written_total < buf.len() {
-            match self.writing_mode {
-                WritingMode::New => {
+            match self.operation_mode {
+                OperationMode::Read => {
                     let frame_header = self.read_chunk()?;
                     if let Some(header) = frame_header {
                         header.serialize(&mut self.header_buffer);
-                        self.writing_mode = WritingMode::Header(RemainderInfo {
+                        self.operation_mode = OperationMode::CopyHeader(RemainderInfo {
                             bytes_written: 0,
                             body_length: header.length as usize,
                         });
@@ -138,10 +138,10 @@ impl<'a> Read for DockerStreamMultiplexer<'a> {
                         return Ok(0);
                     }
                 }
-                WritingMode::Header(header_info) => {
+                OperationMode::CopyHeader(header_info) => {
                     bytes_written_total += self.copy_header(buf, &header_info);
                 }
-                WritingMode::Body(remainder_info) => {
+                OperationMode::CopyBody(remainder_info) => {
                     bytes_written_total += self.copy_body(buf, &remainder_info);
                 }
             }

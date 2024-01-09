@@ -15,7 +15,7 @@ pub struct DockerStreamDecoder {
 
 impl<'a> DockerStreamDecoder {
     pub fn new() -> Self {
-        DockerStreamDecoder {
+        Self {
             n_bytes_read: 0,
             header_buffer: [0u8; FRAME_HEADER_LENGTH],
             mode: ParsingMode::Header,
@@ -30,14 +30,14 @@ impl<'a> DockerStreamDecoder {
     }
 }
 
-pub struct DockerDecoderChunk<'a> {
-    pub stream_type: u8,
-    pub body: &'a [u8],
-}
-
 pub struct DockerStreamDecoderChunks<'a> {
     decoder: &'a mut DockerStreamDecoder,
     chunk: &'a [u8],
+}
+
+pub struct DockerDecoderChunk<'a> {
+    pub stream_type: u8,
+    pub body: &'a [u8],
 }
 
 impl<'a> Iterator for DockerStreamDecoderChunks<'a> {

@@ -33,7 +33,7 @@ impl FrameHeader {
             return Err(DockerDecoderError::MalformedHeader(buffer.clone()));
         }
         let length = BigEndian::read_u32(&buffer[4..]);
-        Ok(FrameHeader {
+        Ok(Self {
             stream_type: buffer[0],
             length: length,
         })

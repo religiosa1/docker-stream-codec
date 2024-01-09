@@ -27,7 +27,7 @@ impl DockerDecoderChunkWriter {
         };
         let stderr_writer = stderr_file.and_then(|file| Some(BufWriter::new(file)));
 
-        Ok(DockerDecoderChunkWriter {
+        Ok(Self {
             stdin: stdin_writer,
             stdout: stdout_writer,
             stderr: stderr_writer,
