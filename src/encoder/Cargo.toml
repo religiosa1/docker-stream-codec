@@ -1,0 +1,23 @@
+[package]
+name = "docker_stream_encoder"
+version = "0.1.0"
+edition = "2021"
+authors = ["Viacheslav Azarov"]
+license = "MIT"
+description = """
+Creates a mock multiplexed docker stream from a bunch of input files for testing purposes.
+
+See https://docs.docker.com/engine/api/v1.43/#tag/Container/operation/ContainerAttach
+"""
+
+[[bin]]
+name = "docker-stream-encoder"
+path = "src/main.rs"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+byteorder = "1.5.0"
+clap = { version = "4.1.8", features = ["derive"] }
+rand = "0.8.5"
