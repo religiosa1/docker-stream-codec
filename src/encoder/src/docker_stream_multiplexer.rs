@@ -9,16 +9,10 @@ pub struct StreamSourceInfo<'a> {
 }
 
 #[derive(Clone, Copy)]
-struct RemainderInfo {
-    bytes_written: usize,
-    body_length: usize,
-}
-
-#[derive(Clone, Copy)]
 enum OperationMode {
     Read,
-    CopyHeader(RemainderInfo),
-    CopyBody(RemainderInfo),
+    CopyHeader(usize),
+    CopyBody(usize),
 }
 
 pub struct DockerStreamMultiplexer<'a> {
@@ -30,18 +24,23 @@ pub struct DockerStreamMultiplexer<'a> {
     frame_max: u32,
     sources: Vec<StreamSourceInfo<'a>>,
     rand_rng: ThreadRng,
+
+    bytes_written: usize,
+    body_length: usize,
 }
 
 impl<'a> DockerStreamMultiplexer<'a> {
     pub fn new(sources: Vec<StreamSourceInfo<'a>>, frame_max: u32, frame_min: u32) -> Self {
         Self {
             operation_mode: OperationMode::Read,
-            body_buffer: Vec::with_capacity(frame_max as usize),
+            body_buffer: vec![0; frame_max as usize],
             header_buffer: [0u8; FRAME_HEADER_LENGTH],
             frame_max: frame_max,
             frame_min: frame_min,
             sources: sources,
             rand_rng: rand::thread_rng(),
+            bytes_written: 0,
+            body_length: 0,
         }
     }
 
@@ -82,70 +81,107 @@ impl<'a> DockerStreamMultiplexer<'a> {
         Ok(None)
     }
 
-    fn copy_header(&mut self, buf: &mut [u8], header_info: &RemainderInfo) -> usize {
-        let remainder = FRAME_HEADER_LENGTH - header_info.bytes_written;
+    fn copy_header(&mut self, buf: &mut [u8], header_bytes_written: usize) {
+        let remainder = FRAME_HEADER_LENGTH - header_bytes_written;
         let bytes_to_write = std::cmp::min(remainder, buf.len());
-        buf.copy_from_slice(&self.header_buffer[remainder..]);
+
+        let dest_buf_rng = self.bytes_written..self.bytes_written + bytes_to_write;
+
+        buf[dest_buf_rng].copy_from_slice(&self.header_buffer[header_bytes_written..]);
+        self.bytes_written += bytes_to_write;
+
         assert!(
             bytes_to_write <= remainder,
             "shouldn't write more, than we have space"
         );
-        if bytes_to_write == remainder {
-            self.operation_mode = OperationMode::CopyBody(RemainderInfo {
-                bytes_written: 0,
-                body_length: header_info.body_length,
-            });
+        if bytes_to_write < remainder {
+            self.operation_mode = OperationMode::CopyHeader(header_bytes_written + bytes_to_write);
         } else {
-            self.operation_mode = OperationMode::CopyHeader(RemainderInfo {
-                bytes_written: header_info.bytes_written + bytes_to_write,
-                body_length: header_info.body_length,
-            });
+            self.operation_mode = OperationMode::CopyBody(0);
         }
-        bytes_to_write
     }
 
-    fn copy_body(&mut self, buf: &mut [u8], header_info: &RemainderInfo) -> usize {
-        let remainder = header_info.body_length - header_info.bytes_written;
+    fn copy_body(&mut self, buf: &mut [u8], body_bytes_written: usize) {
+        let remainder = self.body_length - body_bytes_written;
         let bytes_to_write = std::cmp::min(remainder, buf.len());
-        buf[0..bytes_to_write].copy_from_slice(&self.body_buffer[0..bytes_to_write]);
 
-        if bytes_to_write == remainder {
-            self.operation_mode = OperationMode::Read;
+        let dest_buf_rng = self.bytes_written..self.bytes_written + bytes_to_write;
+        let body_byffer_rng = body_bytes_written..body_bytes_written + bytes_to_write;
+
+        buf[dest_buf_rng].copy_from_slice(&self.body_buffer[body_byffer_rng]);
+        self.bytes_written += bytes_to_write;
+
+        if bytes_to_write < remainder {
+            self.operation_mode = OperationMode::CopyBody(body_bytes_written + bytes_to_write);
         } else {
-            self.operation_mode = OperationMode::CopyBody(RemainderInfo {
-                bytes_written: header_info.bytes_written + bytes_to_write,
-                body_length: header_info.body_length,
-            });
+            self.operation_mode = OperationMode::Read;
         }
-        bytes_to_write
     }
 }
 
 impl<'a> Read for DockerStreamMultiplexer<'a> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let mut bytes_written_total: usize = 0;
-        while bytes_written_total < buf.len() {
+        if buf.len() == 0 {
+            return Ok(0);
+        }
+        self.bytes_written = 0;
+
+        while self.bytes_written < buf.len() {
             match self.operation_mode {
                 OperationMode::Read => {
                     let frame_header = self.read_chunk()?;
                     if let Some(header) = frame_header {
                         header.serialize(&mut self.header_buffer);
-                        self.operation_mode = OperationMode::CopyHeader(RemainderInfo {
-                            bytes_written: 0,
-                            body_length: header.length as usize,
-                        });
+                        self.body_length = header.length as usize;
+                        self.operation_mode = OperationMode::CopyHeader(0);
                     } else {
                         return Ok(0);
                     }
                 }
-                OperationMode::CopyHeader(header_info) => {
-                    bytes_written_total += self.copy_header(buf, &header_info);
+                OperationMode::CopyHeader(header_bytes_written) => {
+                    self.copy_header(buf, header_bytes_written)
                 }
-                OperationMode::CopyBody(remainder_info) => {
-                    bytes_written_total += self.copy_body(buf, &remainder_info);
+                OperationMode::CopyBody(body_bytes_written) => {
+                    self.copy_body(buf, body_bytes_written)
                 }
             }
         }
-        return Ok(bytes_written_total);
+        return Ok(self.bytes_written);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn breaks_single_stream_into_chunks() {
+        let test_input: Cursor<[u8; 9]> =
+            Cursor::new([0x01u8, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09]);
+        let mut mp = DockerStreamMultiplexer::new(
+            vec![{
+                StreamSourceInfo {
+                    stream_type: 2u8,
+                    source: Box::new(test_input),
+                }
+            }],
+            3,
+            3,
+        );
+
+        let header: [u8; FRAME_HEADER_LENGTH] = [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03];
+        let mut expected_output = Vec::<u8>::new();
+        expected_output.extend_from_slice(&header);
+        expected_output.extend_from_slice(&[0x01, 0x02, 0x03]);
+        expected_output.extend_from_slice(&header);
+        expected_output.extend_from_slice(&[0x04, 0x05, 0x06]);
+        expected_output.extend_from_slice(&header);
+        expected_output.extend_from_slice(&[0x07, 0x08, 0x09]);
+
+        let mut output = vec![0; expected_output.len()];
+        mp.read(&mut output).unwrap();
+
+        assert_eq!(output, expected_output);
     }
 }

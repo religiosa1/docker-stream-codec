@@ -22,3 +22,16 @@ impl FrameHeader {
         BigEndian::write_u32(&mut buffer[4..], self.length);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn header_parse() {
+        let header = FrameHeader::new(2, 0x25);
+        let mut buffer = [0u8; FRAME_HEADER_LENGTH];
+        header.serialize(&mut buffer);
+        assert_eq!(buffer, [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25])
+    }
+}

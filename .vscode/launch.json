@@ -1,0 +1,82 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'docker-stream-decoder'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=docker-stream-decoder",
+					"--package=docker_stream_parser"
+				],
+				"filter": {
+					"name": "docker-stream-decoder",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'docker-stream-decoder'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=docker-stream-decoder",
+					"--package=docker_stream_parser"
+				],
+				"filter": {
+					"name": "docker-stream-decoder",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'docker-stream-encoder'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=docker-stream-encoder",
+					"--package=docker_stream_encoder"
+				],
+				"filter": {
+					"name": "docker-stream-encoder",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'docker-stream-encoder'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=docker-stream-encoder",
+					"--package=docker_stream_encoder"
+				],
+				"filter": {
+					"name": "docker-stream-encoder",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}

@@ -6,6 +6,8 @@ i.e. downloaded container logs.
 
 Intended usage -- inspection and testing.
 
+It's an early WIP, and not ready for any real usage.
+
 It's comprised of two separate binaries:
 - docker-stream-decoder
 - docker-stream-encoder
