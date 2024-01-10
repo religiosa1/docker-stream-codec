@@ -55,7 +55,7 @@ impl<'a> Iterator for DockerStreamDecoderChunks<'a> {
                     bytes_to_copy > 0,
                     "Remaining sizes of buffers must allow header parsing"
                 );
-                self.decoder.header_buffer[n_bytes_read..]
+                self.decoder.header_buffer[n_bytes_read..n_bytes_read + bytes_to_copy]
                     .copy_from_slice(&self.chunk[0..bytes_to_copy]);
 
                 self.chunk = &self.chunk[bytes_to_copy..];

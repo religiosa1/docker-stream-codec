@@ -38,7 +38,7 @@ pub struct Args {
 impl Args {
     pub fn parse() -> Result<Args, ArgsError> {
         let mut args = <Self as Parser>::parse();
-        if args.stdout.is_none() && args.stdout.is_none() && args.stderr.is_none() {
+        if args.stdin.is_none() && args.stdout.is_none() && args.stderr.is_none() {
             return Err(ArgsError::NoInputSpecified);
         }
         if args.frame_max > FRAME_SIZE_ABS_MAX {

@@ -86,8 +86,9 @@ impl DockerStreamMultiplexer {
         let bytes_to_write = std::cmp::min(remainder, buf.len() - self.bytes_written);
 
         let dest_buf_rng = self.bytes_written..self.bytes_written + bytes_to_write;
+        let body_buf_rng = header_bytes_written..header_bytes_written + bytes_to_write;
 
-        buf[dest_buf_rng].copy_from_slice(&self.header_buffer[header_bytes_written..]);
+        buf[dest_buf_rng].copy_from_slice(&self.header_buffer[body_buf_rng]);
         self.bytes_written += bytes_to_write;
 
         if bytes_to_write < remainder {

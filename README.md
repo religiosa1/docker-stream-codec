@@ -6,8 +6,6 @@ i.e. downloaded container logs.
 
 Intended usage -- inspection and testing.
 
-It's an early WIP, and not ready for any real usage.
-
 It's comprised of two separate binaries:
 - docker-stream-decoder
 - docker-stream-encoder
@@ -68,7 +66,7 @@ docker-stream-decoder -i log.stdin.txt -o log.stdout.txt -r log.stderr.txt > log
 docker-stream-decoder -o log.stdout.txt -M250  -O log.vdm 
 
 # Reading a single log files, splitting into chunks of random size from 200 to 250 (inclusive) bytes
-docker-stream-decoder -i log.stdin.txt -m 200 -M250
+docker-stream-decoder -i log.stdin.txt -m 200 -M 250
 
 ```
 
