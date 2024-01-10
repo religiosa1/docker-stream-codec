@@ -83,17 +83,13 @@ impl DockerStreamMultiplexer {
 
     fn copy_header(&mut self, buf: &mut [u8], header_bytes_written: usize) {
         let remainder = FRAME_HEADER_LENGTH - header_bytes_written;
-        let bytes_to_write = std::cmp::min(remainder, buf.len());
+        let bytes_to_write = std::cmp::min(remainder, buf.len() - self.bytes_written);
 
         let dest_buf_rng = self.bytes_written..self.bytes_written + bytes_to_write;
 
         buf[dest_buf_rng].copy_from_slice(&self.header_buffer[header_bytes_written..]);
         self.bytes_written += bytes_to_write;
 
-        assert!(
-            bytes_to_write <= remainder,
-            "shouldn't write more, than we have space"
-        );
         if bytes_to_write < remainder {
             self.operation_mode = OperationMode::CopyHeader(header_bytes_written + bytes_to_write);
         } else {
@@ -103,7 +99,7 @@ impl DockerStreamMultiplexer {
 
     fn copy_body(&mut self, buf: &mut [u8], body_bytes_written: usize) {
         let remainder = self.body_length - body_bytes_written;
-        let bytes_to_write = std::cmp::min(remainder, buf.len());
+        let bytes_to_write = std::cmp::min(remainder, buf.len() - self.bytes_written);
 
         let dest_buf_rng = self.bytes_written..self.bytes_written + bytes_to_write;
         let body_buf_rng = body_bytes_written..body_bytes_written + bytes_to_write;
@@ -135,7 +131,7 @@ impl Read for DockerStreamMultiplexer {
                         self.body_length = header.length as usize;
                         self.operation_mode = OperationMode::CopyHeader(0);
                     } else {
-                        return Ok(0);
+                        return Ok(self.bytes_written);
                     }
                 }
                 OperationMode::CopyHeader(header_bytes_written) => {
@@ -188,7 +184,6 @@ mod test {
         assert_eq!(output, expected_output);
     }
 
-    // FIXME
     #[test]
     fn read_to_end() {
         let (test_source, expected_output) = make_simple_input_output();
