@@ -3,9 +3,9 @@ use std::io::Read;
 
 use crate::frame_header::{FrameHeader, FRAME_HEADER_LENGTH};
 
-pub struct StreamSourceInfo<'a> {
+pub struct StreamSourceInfo {
     pub stream_type: u8,
-    pub source: Box<(dyn Read + 'a)>,
+    pub source: Box<(dyn Read)>,
 }
 
 #[derive(Clone, Copy)]
@@ -15,22 +15,22 @@ enum OperationMode {
     CopyBody(usize),
 }
 
-pub struct DockerStreamMultiplexer<'a> {
+pub struct DockerStreamMultiplexer {
     operation_mode: OperationMode,
     body_buffer: Vec<u8>,
     header_buffer: [u8; FRAME_HEADER_LENGTH],
 
     frame_min: u32,
     frame_max: u32,
-    sources: Vec<StreamSourceInfo<'a>>,
+    sources: Vec<StreamSourceInfo>,
     rand_rng: ThreadRng,
 
     bytes_written: usize,
     body_length: usize,
 }
 
-impl<'a> DockerStreamMultiplexer<'a> {
-    pub fn new(sources: Vec<StreamSourceInfo<'a>>, frame_max: u32, frame_min: u32) -> Self {
+impl DockerStreamMultiplexer {
+    pub fn new(sources: Vec<StreamSourceInfo>, frame_max: u32, frame_min: u32) -> Self {
         Self {
             operation_mode: OperationMode::Read,
             body_buffer: vec![0; frame_max as usize],
@@ -106,9 +106,9 @@ impl<'a> DockerStreamMultiplexer<'a> {
         let bytes_to_write = std::cmp::min(remainder, buf.len());
 
         let dest_buf_rng = self.bytes_written..self.bytes_written + bytes_to_write;
-        let body_byffer_rng = body_bytes_written..body_bytes_written + bytes_to_write;
+        let body_buf_rng = body_bytes_written..body_bytes_written + bytes_to_write;
 
-        buf[dest_buf_rng].copy_from_slice(&self.body_buffer[body_byffer_rng]);
+        buf[dest_buf_rng].copy_from_slice(&self.body_buffer[body_buf_rng]);
         self.bytes_written += bytes_to_write;
 
         if bytes_to_write < remainder {
@@ -119,7 +119,7 @@ impl<'a> DockerStreamMultiplexer<'a> {
     }
 }
 
-impl<'a> Read for DockerStreamMultiplexer<'a> {
+impl Read for DockerStreamMultiplexer {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         if buf.len() == 0 {
             return Ok(0);
@@ -155,20 +155,15 @@ mod test {
     use super::*;
     use std::io::Cursor;
 
-    #[test]
-    fn breaks_single_stream_into_chunks() {
+    fn make_simple_input_output() -> (Vec<StreamSourceInfo>, Vec<u8>) {
         let test_input: Cursor<[u8; 9]> =
             Cursor::new([0x01u8, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09]);
-        let mut mp = DockerStreamMultiplexer::new(
-            vec![{
-                StreamSourceInfo {
-                    stream_type: 2u8,
-                    source: Box::new(test_input),
-                }
-            }],
-            3,
-            3,
-        );
+        let sources_list = vec![{
+            StreamSourceInfo {
+                stream_type: 2u8,
+                source: Box::new(test_input),
+            }
+        }];
 
         let header: [u8; FRAME_HEADER_LENGTH] = [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03];
         let mut expected_output = Vec::<u8>::new();
@@ -179,8 +174,28 @@ mod test {
         expected_output.extend_from_slice(&header);
         expected_output.extend_from_slice(&[0x07, 0x08, 0x09]);
 
+        return (sources_list, expected_output);
+    }
+
+    #[test]
+    fn breaks_single_stream_into_chunks() {
+        let (test_source, expected_output) = make_simple_input_output();
+        let mut mp = DockerStreamMultiplexer::new(test_source, 3, 3);
+
         let mut output = vec![0; expected_output.len()];
         mp.read(&mut output).unwrap();
+
+        assert_eq!(output, expected_output);
+    }
+
+    // FIXME
+    #[test]
+    fn read_to_end() {
+        let (test_source, expected_output) = make_simple_input_output();
+        let mut mp = DockerStreamMultiplexer::new(test_source, 3, 3);
+
+        let mut output = Vec::<u8>::new();
+        mp.read_to_end(&mut output).unwrap();
 
         assert_eq!(output, expected_output);
     }
