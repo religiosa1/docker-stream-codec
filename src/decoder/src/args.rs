@@ -17,7 +17,7 @@ pub struct Args {
     #[arg(short = 'o', long, default_value = "-")]
     pub stdout: String,
 
-    /// Stderr stream destination filename. Use '-' to output to process stderr
+    /// Stderr stream destination filename. Use '-' to output to process stdout
     #[arg(short = 'e', long)]
     pub stderr: Option<String>,
 

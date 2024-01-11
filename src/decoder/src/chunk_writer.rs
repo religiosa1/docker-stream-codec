@@ -22,7 +22,7 @@ impl DockerDecoderChunkWriter {
         };
         let stderr_file: Option<Box<dyn Write>> = match args.stderr.as_deref() {
             None => None,
-            Some("-") => Some(Box::new(std::io::stderr())),
+            Some("-") => Some(Box::new(std::io::stdout())),
             Some(filename) => Some(Box::new(File::create(filename)?)),
         };
         let stderr_writer = stderr_file.and_then(|file| Some(BufWriter::new(file)));

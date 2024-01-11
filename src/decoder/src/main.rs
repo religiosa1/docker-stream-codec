@@ -30,15 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut reader = BufReader::new(file);
 
         loop {
-            let bytes_read = match reader.read(&mut buffer) {
-                Ok(n) => n,
-                Err(err) => {
-                    if !args.silent {
-                        eprintln!("Error reading from file {}: {}", filename, err);
-                    }
-                    return Err(Box::new(err));
-                }
-            };
+            let bytes_read = reader.read(&mut buffer)?;
             if bytes_read == 0 {
                 break;
             }

@@ -52,9 +52,6 @@ impl DockerStreamMultiplexer {
     }
 
     fn get_random_source_index(&mut self) -> usize {
-        if self.sources.len() == 0 {
-            return 0;
-        }
         self.rand_rng.gen_range(0..self.sources.len())
     }
 
@@ -118,22 +115,17 @@ impl DockerStreamMultiplexer {
 
 impl Read for DockerStreamMultiplexer {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        if buf.len() == 0 {
-            return Ok(0);
-        }
         self.bytes_written = 0;
 
         while self.bytes_written < buf.len() {
             match self.operation_mode {
                 OperationMode::Read => {
-                    let frame_header = self.read_chunk()?;
-                    if let Some(header) = frame_header {
-                        header.serialize(&mut self.header_buffer);
-                        self.body_length = header.length as usize;
-                        self.operation_mode = OperationMode::CopyHeader(0);
-                    } else {
+                    let Some(header) = self.read_chunk()? else {
                         return Ok(self.bytes_written);
-                    }
+                    };
+                    header.serialize(&mut self.header_buffer);
+                    self.body_length = header.length as usize;
+                    self.operation_mode = OperationMode::CopyHeader(0);
                 }
                 OperationMode::CopyHeader(header_bytes_written) => {
                     self.copy_header(buf, header_bytes_written)

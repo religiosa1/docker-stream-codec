@@ -40,6 +40,9 @@ separate files.
 # getting the stdout from log.vdm and writing it to log.txt
 docker-stream-decoder log.vdm > log.txt
 
+# getting stdout and stderr streans from log.vdm and writing it to stdout
+docker-stream-decoder -e - log.vdm 
+
 # getting all multiplexed streams and redirecting them to their files
 docker-stream-decoder log.vdm -i log.stdin.txt -o log.stdout.txt -r log.stderr.txt
 
