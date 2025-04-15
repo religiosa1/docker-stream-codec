@@ -2,18 +2,19 @@
 
 Small CLI-utility for parsing and creation of
 [multiplexed Docker Streams](https://docs.docker.com/engine/api/v1.43/#tag/Container/operation/ContainerAttach),
-i.e. downloaded container logs. 
+i.e. downloaded container logs.
 
 Intended usage -- inspection and testing.
 
 It's comprised of two separate binaries:
+
 - docker-stream-decoder
 - docker-stream-encoder
 
 ## Building
 
-Docker Stream Parser is written in Rust, you'll need a 
-[Rust installation](https://www.rust-lang.org/tools/install) to compile it. 
+Docker Stream Parser is written in Rust, you'll need a
+[Rust installation](https://www.rust-lang.org/tools/install) to compile it.
 
 ```sh
 git clone https://github.com/religiosa1/docker-stream-codec-cli.git
@@ -29,7 +30,7 @@ cargo test --all
 
 ## Examples
 
-### Decoder 
+### Decoder
 
 Parses multiplexed docker stream into each separate IO stream and writes them to
 separate files.
@@ -54,23 +55,22 @@ docker-stream-decoder log1.vdm log2.vdm log3.vdm
 docker-stream-decoder -f log1.vdm -o /dev/null
 ```
 
-### Ecnoder
+### Encoder
 
 Generates a multiplexed docker stream from multiple input files, with either
-fixed-size frames or randomly sized within the specified range. 
+fixed-size frames or randomly sized within the specified range.
 
 Input file for each next chunk is selected at random.
 
 ```sh
 # Reading contents of log files, multiplexing it into a single stream and redirecting to log.vdm
-docker-stream-decoder -i log.stdin.txt -o log.stdout.txt -r log.stderr.txt > log.vdm 
+docker-stream-encoder -i log.stdin.txt -o log.stdout.txt -r log.stderr.txt > log.vdm 
 
 # Reading a single log file, splitting into chunks of fixed size of 250 bytes and writing to log.vdm
-docker-stream-decoder -o log.stdout.txt -M250  -O log.vdm 
+docker-stream-encoder -o log.stdout.txt -M250  -O log.vdm 
 
 # Reading a single log files, splitting into chunks of random size from 200 to 250 (inclusive) bytes
-docker-stream-decoder -i log.stdin.txt -m 200 -M 250
-
+docker-stream-encoder -i log.stdin.txt -m 200 -M 250
 ```
 
 ## License

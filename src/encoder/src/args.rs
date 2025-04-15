@@ -2,7 +2,7 @@ use std::{error::Error, fmt};
 
 use clap::Parser;
 
-const FRAME_SIZE_ABS_MAX: u32 = 4092;
+const FRAME_SIZE_ABS_MAX: u32 = 4096;
 
 // @see https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html
 

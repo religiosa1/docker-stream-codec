@@ -29,9 +29,9 @@ mod test {
 
     #[test]
     fn header_parse() {
-        let header = FrameHeader::new(2, 0x25);
+        let header = FrameHeader::new(2, 0x12_34_56_78);
         let mut buffer = [0u8; FRAME_HEADER_LENGTH];
         header.serialize(&mut buffer);
-        assert_eq!(buffer, [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25])
+        assert_eq!(buffer, [0x02, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78])
     }
 }

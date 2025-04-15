@@ -46,18 +46,10 @@ mod test {
 
     #[test]
     fn header_parse() {
-        let buffer: [u8; FRAME_HEADER_LENGTH] = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18];
+        let buffer: [u8; FRAME_HEADER_LENGTH] = [0x01, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78];
         let header = FrameHeader::parse(&buffer).unwrap();
-        assert_eq!(header.length, 24);
+        assert_eq!(header.length, 0x12345678);
         assert_eq!(header.stream_type, 1);
-    }
-
-    #[test]
-    fn header_parse_endiannes() {
-        let buffer: [u8; FRAME_HEADER_LENGTH] = [0x00, 0x00, 0x00, 0x00, 0x11, 00, 0x00, 0x22];
-        let header = FrameHeader::parse(&buffer).unwrap();
-        assert_eq!(header.length, 0x11000022u32);
-        assert_eq!(header.stream_type, 0);
     }
 
     #[test]
